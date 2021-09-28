@@ -10,7 +10,7 @@ const generateRandomString = function() { //google from stackflow
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let charactersLength = characters.length;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
@@ -45,7 +45,10 @@ app.get("/urls/new", (req, res) => {
 
 app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  let newShortURL = generateRandomString();
+  const templateVars = { shortURL: newShortURL, longURL: req.body.longURL };
+  res.render("urls_show", templateVars);
+  res.send(urlDatabase[newShortURL] = req.body.longURL);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
