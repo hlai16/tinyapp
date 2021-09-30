@@ -154,8 +154,8 @@ app.post('/register', (req, res) => {
   const userFound = findUserByEmail(email, users);
   console.log('userFound:', userFound);
 
-  if (userFound) {
-    res.status(401).send('Error 400. Sorry, that user already exists!');
+  if (userFound || password === '') {
+    res.status(403).send('Error 403. Sorry, that user already exists!');
     return;
   }
 
@@ -181,10 +181,9 @@ app.post('/login', (req, res) => {
     res.cookie('user_id', userFound.id);
     res.redirect('/urls');
     return;
-  }
-
+  } 
   // user is not authenticated => send error
-  res.status(401).send('Error 400! Wrong credentials!');
+  res.status(403).send('Error 403! Wrong credentials!');
 });
 
 app.post("/logout", (req, res) => {
