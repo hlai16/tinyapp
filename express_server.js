@@ -53,6 +53,16 @@ const findUserByEmail = function (email, users) {
   return false;
 };
 
+const authenticateUser = function (email, password, usersDb) {
+  const userFound = findUserByEmail(email, usersDb);
+
+  if (userFound && userFound.password === password) {
+    return userFound;
+  }
+
+  return false;
+};
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -115,6 +125,12 @@ app.get("/urls/:shortURL/edit", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+app.post("/urls/:shortURL/submit", (req, res) => {
+  const shortURL = req.params.shortURL;
+  urlDatabase[shortURL] = req.body.newURL;
+  res.redirect('/urls');
+});
+
 app.get('/register', (req, res) => {
   const templateVars = { user: null };
   res.render('register', templateVars);
@@ -132,7 +148,7 @@ app.post('/register', (req, res) => {
   console.log('userFound:', userFound);
 
   if (userFound) {
-    res.status(401).send('Sorry, that user already exists!');
+    res.status(401).send('Error 400. Sorry, that user already exists!');
     return;
   }
 
@@ -152,7 +168,7 @@ app.post('/login', (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  const userFound = findUserByEmail(email, users);
+  const userFound = authenticateUser(email, password, users);
   if (userFound) {
     // setting the cookie
     res.cookie('user_id', userFound.id);
@@ -161,11 +177,10 @@ app.post('/login', (req, res) => {
   }
 
   // user is not authenticated => send error
-  res.status(401).send('Wrong credentials!');
+  res.status(401).send('Error 400! Wrong credentials!');
 });
 
 app.post("/logout", (req, res) => {
-  const user = req.body.user;
   res.clearCookie('user_id');
   res.redirect('/urls');
 });

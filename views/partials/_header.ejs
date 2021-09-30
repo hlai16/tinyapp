@@ -8,9 +8,11 @@
         <div class="navbar-nav">
           <a class="nav-item nav-link" href="/urls">My URLs</a>
           <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+          <a class="nav-item nav-link" href="/register">Sign Up</a>
+          <a class="nav-item nav-link" href="/login">Login</a>
         </div>
       </div>
-      <% if (user) { %>
+      <!-- <% if (user) { %>
         <form class="form-inline my-2 my-lg-0" method="POST" action="/logout">
           <div class="form-group mx-sm-3 mb-2">
             <h6 class="text-white">Logged In As: <%= user.email %></h6>
@@ -25,6 +27,6 @@
         </div>
         <button type="submit" class="btn btn-primary mb-2">Login</button>
       </form>
-    <% } %>
+    <% } %> -->
     </nav>
   </header>
