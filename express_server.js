@@ -30,7 +30,6 @@ const users = {
   }
 };
 
-
 const generateRandomString = function() { //google from stackflow
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -43,7 +42,6 @@ const generateRandomString = function() { //google from stackflow
 
 const createUser = function(email, password, users) {
   const userId = generateRandomString();
-  // adding to an object
   users[userId] = {
     id: userId,
     email,
@@ -54,7 +52,6 @@ const createUser = function(email, password, users) {
 
 const authenticateUser = function(email, password, usersDb) {
   const userFound = getUserByEmail(email, usersDb);
-
   if (userFound && bcrypt.compareSync(password, hashPwd(password))) {
     return userFound;
   }
@@ -119,7 +116,6 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body.newURL);  // Log the POST request body to the console
   const userId = req.session.user_id;
   const user = users[userId];
   let newShortURL = generateRandomString();
@@ -145,7 +141,6 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
-  console.log(req.params.shortURL);
   const userId = req.session.user_id;
   const user = users[userId];
   if (user === undefined) {
@@ -180,9 +175,6 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', (req, res) => {
-  // we need to extract the info from the body of request => req.body
-  console.log('req.body:', req.body);
-  const name = req.body.name;
   const email = req.body.email;
   const password = hashPwd(req.body.password);
   // check if that user already exist in the users
@@ -202,7 +194,6 @@ app.post('/register', (req, res) => {
   const userId = createUser(email, password, users);
   // Log the user => ask the browser to set a cookie with the user id
   req.session.user_id = userId;
-  console.log(users);
   res.redirect('/urls');
 });
   
