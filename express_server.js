@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = 8080;
 
@@ -8,18 +9,23 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 
+const hashPwd = (password) => {
+  bcrypt.hashSync(password, 10);
+}
+
 const users = {
   "aJ48lW": {
     id: "aJ48lW",
     email: "a@a.com",
-    password: "123"
+    password: hashPwd("123")
   },
   "bbb": {
     id: "bbb",
     email: "b@b.com",
-    password: "123"
+    password: hashPwd("123")
   }
 };
+
 
 const generateRandomString = function() { //google from stackflow
   let result = '';
@@ -196,7 +202,7 @@ app.post('/register', (req, res) => {
   console.log('req.body:', req.body);
   const name = req.body.name;
   const email = req.body.email;
-  const password = req.body.password;
+  const password = hashPwd(req.body.password);
   // check if that user already exist in the users
   // if yes, send back error message
   const userFound = findUserByEmail(email, users);
@@ -214,6 +220,7 @@ app.post('/register', (req, res) => {
   const userId = createUser(name, email, password, users);
   // Log the user => ask the browser to set a cookie with the user id
   res.cookie('user_id', userId);
+  console.log(users);
   res.redirect('/urls');
 });
   
@@ -225,8 +232,9 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const hashed = hashPwd(password);
 
-  const userFound = authenticateUser(email, password, users);
+  const userFound = authenticateUser(email, hashed, users);
   if (userFound) {
     // setting the cookie
     res.cookie('user_id', userFound.id);
@@ -240,24 +248,6 @@ app.post('/login', (req, res) => {
 app.post("/logout", (req, res) => {
   res.clearCookie('user_id');
   res.redirect('/urls');
-});
-
-app.get('/u/:id', (req, res) => {
-  console.log('req.body:', req.body);
-  const id = req.body.id;
-  // check if that user already exist in the users
-  // if yes, send back error message
-  const userFound = findUserByID(id, users);
-  console.log('userFound:', userFound);
-
-  if (!userFound) {
-    res.status(403).send('Error 403. UserID not found!');
-    return;
-  } 
-
-  res.cookie('user_id', userId);
-  const templateVars = { user: userID };
-  res.render('user_index', templateVars);
 });
 
 app.listen(PORT, () => {
