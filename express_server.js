@@ -9,12 +9,12 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 
 const users = {
-  "Rambo": {
-    id: "aaa",
+  "aJ48lW": {
+    id: "aJ48lW",
     email: "a@a.com",
     password: "123"
   },
-  "Bambie": {
+  "bbb": {
     id: "bbb",
     email: "b@b.com",
     password: "123"
@@ -73,6 +73,16 @@ const authenticateUser = function(email, password, usersDb) {
   return false;
 };
 
+const urlsForUser = (id) => {
+  let result = {};
+  for (let shortURL in urlDatabase) {
+    if (id === urlDatabase[shortURL].userID) {
+      result[shortURL] = urlDatabase[shortURL];
+    }
+  }
+  return result;
+}
+
 const urlDatabase = {
   b6UTxQ: {
       longURL: "https://www.tsn.ca",
@@ -100,11 +110,11 @@ app.get("/urls", (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
   const templateVars = {
-    urls: urlDatabase,
+    urls: urlsForUser(userId),
     user
   };
-  if (!user) {
-    return res.render('loginFirst', templateVars);
+  if (!userId) {
+    return res.redirect('/login');
   }
   res.render("urls_index", templateVars);
 });
@@ -113,7 +123,7 @@ app.get("/urls/new", (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
   const templateVars = { user };
-  if (user === undefined) {
+  if (!user) {
     res.status(403).send('Error 403. You need to register/login first to create short URLs.');
     return;
   }
