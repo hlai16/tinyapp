@@ -8,6 +8,19 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 
+const users = { 
+  "Rambo": {
+    id: "Rambo", 
+    email: "a@a.com", 
+    password: "123"
+  },
+ "Bambie": {
+    id: "Bambie", 
+    email: "b@b.com", 
+    password: "123"
+  }
+}
+
 const generateRandomString = function() { //google from stackflow
   let result = '';
   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -18,6 +31,27 @@ const generateRandomString = function() { //google from stackflow
   return result;
 };
 
+const createUser = function (name, email, password, users) {
+  const userId = generateRandomString();
+  // adding to an object
+  users[userId] = {
+    id: userId,
+    name,
+    email,
+    password,
+  };
+  return userId;
+};
+
+const findUserByEmail = function (email, users) {
+  for (let userId in users) {
+    const user = users[userId];
+    if (email === user.email) {
+      return user;
+    }
+  }
+  return false;
+};
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -37,9 +71,11 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { 
-    urls: urlDatabase, 
-    username: req.cookies["username"] 
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
+  const templateVars = {
+    urls: urlDatabase,
+    user
   };
   res.render("urls_index", templateVars);
 });
@@ -63,7 +99,7 @@ app.get("/urls/:shortURL", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL];
-  res.redirect(longURL)
+  res.redirect(longURL);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
@@ -79,21 +115,58 @@ app.get("/urls/:shortURL/edit", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-app.post("/urls/:shortURL/submit", (req, res) => {
-  const shortURL = req.params.shortURL;
-  urlDatabase[shortURL] = req.body.newURL;
-  res.redirect('/urls');
+app.get('/register', (req, res) => {
+  const templateVars = { user: null };
+  res.render('register', templateVars);
 });
 
-app.post("/login", (req, res) => {
-  const username = req.body.username;
-  res.cookie('username', username);
+app.post('/register', (req, res) => {
+  // we need to extract the info from the body of request => req.body
+  console.log('req.body:', req.body);
+  const name = req.body.name;
+  const email = req.body.email;
+  const password = req.body.password;
+  // check if that user already exist in the users
+  // if yes, send back error message
+  const userFound = findUserByEmail(email, users);
+  console.log('userFound:', userFound);
+
+  if (userFound) {
+    res.status(401).send('Sorry, that user already exists!');
+    return;
+  }
+
+  // userFound is false => ok register the user
+  const userId = createUser(name, email, password, users);
+  // Log the user => ask the browser to set a cookie with the user id
+  res.cookie('user_id', userId);
   res.redirect('/urls');
+});
+  
+app.get('/login', (req, res) => {
+  const templateVars = { user: null };
+  res.render('login', templateVars);
+});
+
+app.post('/login', (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+
+  const userFound = findUserByEmail(email, users);
+  if (userFound) {
+    // setting the cookie
+    res.cookie('user_id', userFound.id);
+    res.redirect('/urls'); 
+    return;
+  }
+
+  // user is not authenticated => send error
+  res.status(401).send('Wrong credentials!');
 });
 
 app.post("/logout", (req, res) => {
-  const username = req.body.username;
-  res.clearCookie('username', username);
+  const user = req.body.user;
+  res.clearCookie('user_id');
   res.redirect('/urls');
 });
 
