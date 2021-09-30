@@ -64,8 +64,14 @@ const authenticateUser = function(email, password, usersDb) {
 };
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+      longURL: "https://www.tsn.ca",
+      userID: "aJ48lW"
+  },
+  i3BoGr: {
+      longURL: "https://www.google.ca",
+      userID: "aJ48lW"
+  }
 };
 
 app.get("/", (req, res) => {
@@ -94,47 +100,66 @@ app.get("/urls/new", (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
   const templateVars = { user };
+  if (user === undefined) {
+    res.status(403).send('Error 403. You need to register/login first to create short URLs.');
+    return;
+  }
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
+  console.log(req.body.newURL);  // Log the POST request body to the console
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
   let newShortURL = generateRandomString();
-  urlDatabase[newShortURL] = req.body.longURL;
+  urlDatabase[newShortURL] = {
+    longURL: req.body.newURL,
+    userID: user['id']
+  }
   res.redirect(`urls/${newShortURL}`);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.cookies["user_id"];
   const user = users[userId];
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user};
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]['longURL'], user};
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL];
+  const longURL = urlDatabase[shortURL]['longURL'];
   res.redirect(longURL);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
+  console.log(req.params.shortURL);
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
+  if (user === undefined) {
+    res.status(403).send('Error 403. You need to login/register to perform editting.');
+    return;
+  }
   res.redirect("/urls");
 });
 
 app.get("/urls/:shortURL/edit", (req, res) => {
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL];
+  const longURL = urlDatabase[shortURL].longURL;
   const userId = req.cookies["user_id"];
   const user = users[userId];
   const templateVars = { shortURL, longURL, user };
-  
+  if (user === undefined) {
+    res.status(403).send('Error 403. You need to login/register to perform editting.');
+    return;
+  }
   res.render("urls_show", templateVars);
 });
 
 app.post("/urls/:shortURL/submit", (req, res) => {
   const shortURL = req.params.shortURL;
-  urlDatabase[shortURL] = req.body.newURL;
+  urlDatabase[shortURL]['longURL'] = req.body.newURL;
   res.redirect('/urls');
 });
 
@@ -154,8 +179,11 @@ app.post('/register', (req, res) => {
   const userFound = findUserByEmail(email, users);
   console.log('userFound:', userFound);
 
-  if (userFound || password === '') {
+  if (userFound) {
     res.status(403).send('Error 403. Sorry, that user already exists!');
+    return;
+  } else if (password === '') {
+    res.status(403).send('Error 403. Please provide a password.');
     return;
   }
 
