@@ -1,16 +1,20 @@
+var cookieSession = require('cookie-session')
 const express = require("express");
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
+const { getUserByEmail } = require('./helpers');
 const app = express();
 const PORT = 8080;
 
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'user_id',
+  keys: ['a long long hard to crack key', 'a much longer key to crack']
+}))
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 
 const hashPwd = (password) => {
-  bcrypt.hashSync(password, 10);
+  return bcrypt.hashSync(password, 10);
 }
 
 const users = {
@@ -37,45 +41,23 @@ const generateRandomString = function() { //google from stackflow
   return result;
 };
 
-const createUser = function(name, email, password, users) {
+const createUser = function(email, password, users) {
   const userId = generateRandomString();
   // adding to an object
   users[userId] = {
     id: userId,
-    name,
     email,
     password,
   };
   return userId;
 };
 
-const findUserByEmail = function(email, users) {
-  for (let userId in users) {
-    const user = users[userId];
-    if (email === user.email) {
-      return user;
-    }
-  }
-  return false;
-};
-
-const findUserByID = function(id, users) {
-  for (let userId in users) {
-    const user = users[userId];
-    if (id === user.id) {
-      return user;
-    }
-  }
-  return false;
-};
-
 const authenticateUser = function(email, password, usersDb) {
-  const userFound = findUserByEmail(email, usersDb);
+  const userFound = getUserByEmail(email, usersDb);
 
-  if (userFound && userFound.password === password) {
+  if (userFound && bcrypt.compareSync(password, hashPwd(password))) {
     return userFound;
   }
-
   return false;
 };
 
@@ -113,7 +95,7 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   const templateVars = {
     urls: urlsForUser(userId),
@@ -126,7 +108,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   const templateVars = { user };
   if (!user) {
@@ -138,7 +120,7 @@ app.get("/urls/new", (req, res) => {
 
 app.post("/urls", (req, res) => {
   console.log(req.body.newURL);  // Log the POST request body to the console
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   let newShortURL = generateRandomString();
   urlDatabase[newShortURL] = {
@@ -149,7 +131,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]['longURL'], user};
   res.render("urls_show", templateVars);
@@ -164,7 +146,7 @@ app.get("/u/:shortURL", (req, res) => {
 app.post("/urls/:shortURL/delete", (req, res) => {
   delete urlDatabase[req.params.shortURL];
   console.log(req.params.shortURL);
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   if (user === undefined) {
     res.status(403).send('Error 403. You need to login/register to perform editting.');
@@ -176,7 +158,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.get("/urls/:shortURL/edit", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user_id;
   const user = users[userId];
   const templateVars = { shortURL, longURL, user };
   if (user === undefined) {
@@ -205,7 +187,7 @@ app.post('/register', (req, res) => {
   const password = hashPwd(req.body.password);
   // check if that user already exist in the users
   // if yes, send back error message
-  const userFound = findUserByEmail(email, users);
+  const userFound = getUserByEmail(email, users);
   console.log('userFound:', userFound);
 
   if (userFound) {
@@ -217,9 +199,9 @@ app.post('/register', (req, res) => {
   }
 
   // userFound is false => ok register the user
-  const userId = createUser(name, email, password, users);
+  const userId = createUser(email, password, users);
   // Log the user => ask the browser to set a cookie with the user id
-  res.cookie('user_id', userId);
+  req.session.user_id = userId;
   console.log(users);
   res.redirect('/urls');
 });
@@ -232,12 +214,11 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const hashed = hashPwd(password);
 
-  const userFound = authenticateUser(email, hashed, users);
+  const userFound = authenticateUser(email, password, users);
   if (userFound) {
     // setting the cookie
-    res.cookie('user_id', userFound.id);
+    req.session.user_id =  userFound.id;
     res.redirect('/urls');
     return;
   } 
