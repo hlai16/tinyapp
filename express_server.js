@@ -10,12 +10,12 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 const users = {
   "Rambo": {
-    id: "Rambo",
+    id: "aaa",
     email: "a@a.com",
     password: "123"
   },
   "Bambie": {
-    id: "Bambie",
+    id: "bbb",
     email: "b@b.com",
     password: "123"
   }
@@ -53,6 +53,16 @@ const findUserByEmail = function(email, users) {
   return false;
 };
 
+const findUserByID = function(id, users) {
+  for (let userId in users) {
+    const user = users[userId];
+    if (id === user.id) {
+      return user;
+    }
+  }
+  return false;
+};
+
 const authenticateUser = function(email, password, usersDb) {
   const userFound = findUserByEmail(email, usersDb);
 
@@ -83,7 +93,7 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
+  res.send("<html><body>Hello <b>Please login first.</b></body></html>\n");
 });
 
 app.get("/urls", (req, res) => {
@@ -93,6 +103,9 @@ app.get("/urls", (req, res) => {
     urls: urlDatabase,
     user
   };
+  if (!user) {
+    return res.render('loginFirst', templateVars);
+  }
   res.render("urls_index", templateVars);
 });
 
@@ -217,6 +230,24 @@ app.post('/login', (req, res) => {
 app.post("/logout", (req, res) => {
   res.clearCookie('user_id');
   res.redirect('/urls');
+});
+
+app.get('/u/:id', (req, res) => {
+  console.log('req.body:', req.body);
+  const id = req.body.id;
+  // check if that user already exist in the users
+  // if yes, send back error message
+  const userFound = findUserByID(id, users);
+  console.log('userFound:', userFound);
+
+  if (!userFound) {
+    res.status(403).send('Error 403. UserID not found!');
+    return;
+  } 
+
+  res.cookie('user_id', userId);
+  const templateVars = { user: userID };
+  res.render('user_index', templateVars);
 });
 
 app.listen(PORT, () => {
