@@ -5,9 +5,11 @@ Users need to signup in order to create their own short URLs. Users have the fle
 
 ## Final Product
 
-!["screenshot description"](#)
+!["screenshot of login page"](https://github.com/hlai16/tinyapp/blob/master/docs/login-page.png?raw=true)
 
-!["screenshot description"](#)
+!["screenshot of urls page"](https://github.com/hlai16/tinyapp/blob/master/docs/urls-page.png?raw=true)
+
+!["screenshot of urls edit page in mobile view"] (https://github.com/hlai16/tinyapp/blob/master/docs/url-edit-page-mobile-view.png?raw=true)
 
 ## Dependencies
 
