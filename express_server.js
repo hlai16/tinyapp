@@ -75,12 +75,12 @@ const urlDatabase = {
   },
   i3BoGr: {
       longURL: "https://www.google.ca",
-      userID: "aJ48lW"
+      userID: "bbb"
   }
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect('/urls');
 });
 
 app.get("/urls.json", (req, res) => {
@@ -109,8 +109,7 @@ app.get("/urls/new", (req, res) => {
   const user = users[userId];
   const templateVars = { user };
   if (!user) {
-    res.status(403).send('Error 403. You need to register/login first to create short URLs.');
-    return;
+    res.redirect('/login')
   }
   res.render("urls_new", templateVars);
 });
@@ -129,6 +128,13 @@ app.post("/urls", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
+  if (!urlDatabase[req.params.shortURL]) {
+    res.status(403).send('Error 403. Short Url page doesn not exist.');
+    return;
+  } if (urlDatabase[req.params.shortURL].userID !== userId) {
+    res.status(403).send('Error 403. This shortURL does not belong to you.');
+    return;
+  }
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]['longURL'], user};
   res.render("urls_show", templateVars);
 });
