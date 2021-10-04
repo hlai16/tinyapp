@@ -26,7 +26,7 @@ const users = {
   "bbb": {
     id: "bbb",
     email: "b@b.com",
-    password: hashPwd("123")
+    password: hashPwd("000")
   }
 };
 
@@ -50,10 +50,13 @@ const createUser = function(email, password, users) {
   return userId;
 };
 
+
 const authenticateUser = function(email, password, usersDb) {
   const userFound = getUserByEmail(email, usersDb);
-  if (userFound && bcrypt.compareSync(password, hashPwd(password))) {
-    return userFound;
+  for (let userId in users) {
+    if (userFound && bcrypt.compareSync(password, userFound.password)) {
+      return userFound;
+    }
   }
   return false;
 };
@@ -215,7 +218,7 @@ app.post('/login', (req, res) => {
   const userFound = authenticateUser(email, password, users);
   if (userFound) {
     // setting the cookie
-    req.session.user_id =  userFound.id;
+    req.session.user_id = userFound.id;
     res.redirect('/urls');
     return;
   } 
