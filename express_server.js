@@ -1,21 +1,9 @@
 let cookieSession = require('cookie-session');
 const express = require("express");
 const bodyParser = require("body-parser");
-const bcrypt = require('bcryptjs');
-const { getUserByEmail } = require('./helpers');
+const { getUserByEmail, hashPwd, generateRandomString, createUser, authenticateUser, urlsForUser, urlDatabase } = require('./helpers');
 const app = express();
 const PORT = 8080;
-
-app.use(cookieSession({
-  name: 'user_id',
-  keys: ['a long long hard to crack key', 'a much longer key to crack']
-}));
-app.set("view engine", "ejs");
-app.use(bodyParser.urlencoded({extended: true}));
-
-const hashPwd = (password) => {
-  return bcrypt.hashSync(password, 10);
-};
 
 const users = {
   "aJ48lW": {
@@ -30,55 +18,12 @@ const users = {
   }
 };
 
-const generateRandomString = function() { //google from stackflow
-  let result = '';
-  let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let charactersLength = characters.length;
-  for (let i = 0; i < 6; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-};
-
-const createUser = function(email, password, users) {
-  const userId = generateRandomString();
-  users[userId] = {
-    id: userId,
-    email,
-    password,
-  };
-  return userId;
-};
-
-
-const authenticateUser = function(email, password, usersDb) {
-  const userFound = getUserByEmail(email, usersDb);
-  if (userFound && bcrypt.compareSync(password, userFound.password)) {
-    return userFound;
-  }
-  return false;
-};
-
-const urlsForUser = (id) => {
-  let result = {};
-  for (let shortURL in urlDatabase) {
-    if (id === urlDatabase[shortURL].userID) {
-      result[shortURL] = urlDatabase[shortURL];
-    }
-  }
-  return result;
-};
-
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW"
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "bbb"
-  }
-};
+app.use(cookieSession({
+  name: 'user_id',
+  keys: ['a long long hard to crack key', 'a much longer key to crack']
+}));
+app.set("view engine", "ejs");
+app.use(bodyParser.urlencoded({extended: true}));
 
 app.get("/", (req, res) => {
   res.redirect('/urls');
@@ -93,10 +38,10 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const userId = req.session.user_id;
+  const userId = req.session.user_id; //read sessioned userId
   const user = users[userId];
   const templateVars = {
-    urls: urlsForUser(userId),
+    urls: urlsForUser(userId), //filter out only urls belonged to user
     user
   };
   if (!userId) {
@@ -110,7 +55,7 @@ app.get("/urls/new", (req, res) => {
   const user = users[userId];
   const templateVars = { user };
   if (!user) {
-    res.redirect('/login');
+    res.redirect('/login'); //to prevent non-user from creating urls.
   }
   res.render("urls_new", templateVars);
 });
@@ -119,20 +64,20 @@ app.post("/urls", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
   let newShortURL = generateRandomString();
-  urlDatabase[newShortURL] = {
+  urlDatabase[newShortURL] = { //add new entry of shortURL
     longURL: req.body.newURL,
     userID: user['id']
   };
-  res.redirect(`urls/${newShortURL}`);
+  res.redirect(`urls/${newShortURL}`); //show users their new shortURL page
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
-  if (!urlDatabase[req.params.shortURL]) {
+  if (!urlDatabase[req.params.shortURL]) { // prevent random guessing of other users' shortURL
     res.status(403).send('Error 403. Short Url page doesn not exist.');
     return;
-  } if (urlDatabase[req.params.shortURL].userID !== userId) {
+  } if (urlDatabase[req.params.shortURL].userID !== userId) { //prevent users 'hacking' into other users' urls.
     res.status(403).send('Error 403. This shortURL does not belong to you.');
     return;
   }
@@ -177,17 +122,16 @@ app.post("/urls/:shortURL/submit", (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  const templateVars = { user: null };
+  const templateVars = { user: null }; //no user at this point, not created yet.
   res.render('register', templateVars);
 });
 
 app.post('/register', (req, res) => {
   const email = req.body.email;
-  const password = hashPwd(req.body.password);
+  const password = hashPwd(req.body.password); //protecting user's password 
   // check if that user already exist in the users
   // if yes, send back error message
   const userFound = getUserByEmail(email, users);
-  console.log('userFound:', userFound);
 
   if (userFound) {
     res.status(403).send('Error 403. Sorry, that user already exists!');
@@ -200,7 +144,7 @@ app.post('/register', (req, res) => {
   // userFound is false => ok register the user
   const userId = createUser(email, password, users);
   // Log the user => ask the browser to set a cookie with the user id
-  req.session.user_id = userId;
+  req.session.user_id = userId; //encryption starts
   res.redirect('/urls');
 });
   
