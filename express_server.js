@@ -1,4 +1,4 @@
-var cookieSession = require('cookie-session')
+let cookieSession = require('cookie-session');
 const express = require("express");
 const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
@@ -9,13 +9,13 @@ const PORT = 8080;
 app.use(cookieSession({
   name: 'user_id',
   keys: ['a long long hard to crack key', 'a much longer key to crack']
-}))
+}));
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 
 const hashPwd = (password) => {
   return bcrypt.hashSync(password, 10);
-}
+};
 
 const users = {
   "aJ48lW": {
@@ -53,10 +53,8 @@ const createUser = function(email, password, users) {
 
 const authenticateUser = function(email, password, usersDb) {
   const userFound = getUserByEmail(email, usersDb);
-  for (let userId in users) {
-    if (userFound && bcrypt.compareSync(password, userFound.password)) {
-      return userFound;
-    }
+  if (userFound && bcrypt.compareSync(password, userFound.password)) {
+    return userFound;
   }
   return false;
 };
@@ -69,16 +67,16 @@ const urlsForUser = (id) => {
     }
   }
   return result;
-}
+};
 
 const urlDatabase = {
   b6UTxQ: {
-      longURL: "https://www.tsn.ca",
-      userID: "aJ48lW"
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
   },
   i3BoGr: {
-      longURL: "https://www.google.ca",
-      userID: "bbb"
+    longURL: "https://www.google.ca",
+    userID: "bbb"
   }
 };
 
@@ -112,7 +110,7 @@ app.get("/urls/new", (req, res) => {
   const user = users[userId];
   const templateVars = { user };
   if (!user) {
-    res.redirect('/login')
+    res.redirect('/login');
   }
   res.render("urls_new", templateVars);
 });
@@ -124,7 +122,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[newShortURL] = {
     longURL: req.body.newURL,
     userID: user['id']
-  }
+  };
   res.redirect(`urls/${newShortURL}`);
 });
 
@@ -221,7 +219,7 @@ app.post('/login', (req, res) => {
     req.session.user_id = userFound.id;
     res.redirect('/urls');
     return;
-  } 
+  }
   // user is not authenticated => send error
   res.status(403).send('Error 403! Wrong credentials!');
 });
